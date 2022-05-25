@@ -4,12 +4,18 @@ Syncs EmuDeck saves with your cloud storage provider.
 import argparse
 import os
 import pathlib
+import shlex
 import subprocess
 import pexpect
 
-rclone: str = pathlib.Path(__file__).parent.joinpath("resources/bin/rclone").__str__() \
+
+def resource_dir():
+    return pathlib.Path(__file__).parent.joinpath("resources")
+
+
+rclone: str = resource_dir().joinpath("bin/rclone").__str__() \
     if os.environ.get("APPDIR") is None else pathlib.Path(os.environ.get("APPDIR")).joinpath("usr/bin/rclone").__str__()
-unison: str = pathlib.Path(__file__).parent.joinpath("resources/bin/unison").__str__() \
+unison: str = resource_dir().joinpath("bin/unison").__str__() \
     if os.environ.get("APPDIR") is None else pathlib.Path(os.environ.get("APPDIR")).joinpath("usr/bin/unison").__str__()
 
 
@@ -51,10 +57,11 @@ def sync(path_in: str):
     mount = F"{pathlib.Path.home()}/Emulation/tools/savesync/mount"
     subprocess.run(["mkdir", "-p", mount])
     subprocess.run([rclone, "mkdir", "saves:/Emulation/saves/"])
-    subprocess.run([rclone, "mount", "saves:/Emulation/saves/", mount, "--daemon"])
-    service = subprocess.Popen(
-        [unison, mount, path_in, "-repeat", "60", "-batch", "-copyonconflict", "-prefer", "newer",
-         "-links", "true", "-follow", "Name *"])
+    subprocess.run([rclone, "mount", "saves:/Emulation/saves/", mount, "--daemon"] +
+                   shlex.split(os.environ.get("RCLONE_ARGS")))
+    service = subprocess.Popen([unison, mount, path_in, "-repeat", "60", "-batch", "-copyonconflict",
+                                "-prefer", "newer", "-links", "true", "-follow", "Name *"] +
+                               shlex.split(os.environ.get("UNISON_ARGS")))
     try:
         service.wait()
     except KeyboardInterrupt:
