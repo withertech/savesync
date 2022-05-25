@@ -5,7 +5,7 @@ EmuDeck SaveSync
 `The BeeWare Project`_. **If you want to see more tools like Briefcase, please
 consider** `becoming a financial member of BeeWare`_.
 
-Syncs EmuDeck saves with your google drive
+Syncs EmuDeck saves with your cloud storage provider.
 
 .. _`Briefcase`: https://github.com/beeware/briefcase
 .. _`The BeeWare Project`: https://beeware.org/
