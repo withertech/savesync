@@ -2,12 +2,15 @@
 Syncs EmuDeck saves with your cloud storage provider.
 """
 import argparse
+import os
 import pathlib
 import subprocess
 import pexpect
 
-rclone: str = pathlib.Path(__file__).parent.joinpath("resources/bin/rclone").__str__()
-unison: str = pathlib.Path(__file__).parent.joinpath("resources/bin/unison").__str__()
+rclone: str = pathlib.Path(__file__).parent.joinpath("resources/bin/rclone").__str__() \
+    if os.environ.get("APPDIR") is None else pathlib.Path(os.environ.get("APPDIR")).joinpath("usr/bin/rclone").__str__()
+unison: str = pathlib.Path(__file__).parent.joinpath("resources/bin/unison").__str__() \
+    if os.environ.get("APPDIR") is None else pathlib.Path(os.environ.get("APPDIR")).joinpath("usr/bin/unison").__str__()
 
 
 def main():

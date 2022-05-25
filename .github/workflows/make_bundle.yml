@@ -25,6 +25,7 @@ jobs:
       - name: Create and Build Bundle
         run: |
           briefcase create
+          cp src/savesync/resources/bin/* linux/appimage/EmuDeck\ SaveSync/EmuDeck\ SaveSync.AppDir/usr/bin/
           briefcase build
       - name: Package
         run: briefcase package
