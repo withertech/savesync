@@ -9,9 +9,8 @@ import pexpect
 rclone: str = pathlib.Path(__file__).parent.joinpath("resources/bin/rclone").__str__()
 unison: str = pathlib.Path(__file__).parent.joinpath("resources/bin/unison").__str__()
 
+
 def main():
-    # This should start and launch your app!
-    global parser
     parser = argparse.ArgumentParser(prog="savesync", description="Syncs EmuDeck saves with your cloud storage "
                                                                   "provider.")
     group = parser.add_mutually_exclusive_group(required=True)
