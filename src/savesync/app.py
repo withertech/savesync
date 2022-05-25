@@ -53,24 +53,28 @@ def main():
         sync(args["sync"])
 
 
-def sync(path_in: str):
-    mount = F"{pathlib.Path.home()}/Emulation/tools/savesync/mount"
-    subprocess.run(["mkdir", "-p", mount])
-    subprocess.run([rclone, "mkdir", "saves:/Emulation/saves/"])
-    subprocess.run([rclone, "mount", "saves:/Emulation/saves/", mount, "--daemon"] +
-                   shlex.split(os.environ.get("RCLONE_ARGS")))
-    service = subprocess.Popen([unison, mount, path_in, "-repeat", "60", "-batch", "-copyonconflict",
-                                "-prefer", "newer", "-links", "true", "-follow", "Name *"] +
-                               shlex.split(os.environ.get("UNISON_ARGS")))
+def run_cmd(command):
+    process = subprocess.Popen(command)
     try:
-        service.wait()
+        process.wait()
     except KeyboardInterrupt:
         try:
-            service.terminate()
+            process.terminate()
         except OSError:
             pass
-        service.wait()
-    subprocess.run(["fusermount", "-u", mount])
+        process.wait()
+
+
+def sync(path_in: str):
+    mount = F"{pathlib.Path.home()}/Emulation/tools/savesync/mount"
+    run_cmd(["mkdir", "-p", mount])
+    run_cmd([rclone, "mkdir", "saves:/Emulation/saves/"])
+    run_cmd([rclone, "mount", "saves:/Emulation/saves/", mount, "--daemon"] +
+            shlex.split(os.environ.get("RCLONE_ARGS", "")))
+    run_cmd([unison, mount, path_in, "-repeat", "60", "-batch", "-copyonconflict",
+            "-prefer", "newer", "-links", "true", "-follow", "Name *"] +
+            shlex.split(os.environ.get("UNISON_ARGS", "")))
+    run_cmd(["fusermount", "-u", mount])
 
 
 def setup_gdrive(p: pexpect.spawn):
