@@ -1,0 +1,10 @@
+Metadata-Version: 2.1
+Briefcase-Version: 0.3.7
+Name: savesync
+Formal-Name: EmuDeck SaveSync
+App-ID: com.withertech.savesync
+Version: 0.0.1
+Home-page: https://github.com/withertech/savesync
+Author: Witherking25
+Author-email: witherking@withertech.com
+Summary: Syncs EmuDeck saves with your cloud storage provider.

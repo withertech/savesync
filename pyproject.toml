@@ -1,0 +1,21 @@
+[tool.briefcase]
+project_name = "EmuDeck SaveSync"
+bundle = "com.withertech"
+version = "0.0.1"
+url = "https://github.com/withertech/savesync"
+license = "GNU General Public License v3 or later (GPLv3+)"
+author = 'Witherking25'
+author_email = "witherking@withertech.com"
+
+[tool.briefcase.app.savesync]
+formal_name = "EmuDeck SaveSync"
+description = "Syncs EmuDeck saves with your cloud storage provider."
+icon = "src/savesync/resources/savesync"
+sources = ['src/savesync']
+requires = [
+    "pexpect==4.8.0"
+]
+
+[tool.briefcase.app.savesync.linux]
+requires = []
+system_requires = []
