@@ -2,13 +2,22 @@
 Syncs EmuDeck saves with your cloud storage provider.
 """
 import argparse
+import logging
 import os
 import pathlib
 import shlex
+import socket
 import subprocess
+import sys
+import threading
+import time
+
 import pexpect
 import yaml
 from schema import Schema, Optional, SchemaError
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 schema = Schema(
     {
@@ -35,6 +44,11 @@ def resource_dir():
     return pathlib.Path(__file__).parent.joinpath("resources")
 
 
+def bin_dir():
+    return resource_dir().joinpath("bin") \
+        if os.environ.get("APPDIR") is None else pathlib.Path(os.environ.get("APPDIR")).joinpath("usr/bin")
+
+
 def run_cmd(command):
     process = subprocess.Popen(command)
     try:
@@ -47,21 +61,30 @@ def run_cmd(command):
         process.wait()
 
 
-rclone: str = resource_dir().joinpath("bin/rclone").__str__() \
-    if os.environ.get("APPDIR") is None else pathlib.Path(os.environ.get("APPDIR")).joinpath("usr/bin/rclone").__str__()
-unison: str = resource_dir().joinpath("bin/unison").__str__() \
-    if os.environ.get("APPDIR") is None else pathlib.Path(os.environ.get("APPDIR")).joinpath("usr/bin/unison").__str__()
+rclone: str = bin_dir().joinpath("rclone").__str__()
+unison: str = bin_dir().joinpath("unison").__str__()
 
 
-def main():
+def is_connected():
+    try:
+        sock = socket.create_connection(("www.google.com", 80))
+        if sock is not None:
+            sock.close()
+        return True
+    except OSError:
+        pass
+    return False
+
+
+def thread__network_check():
+    mount = F"{pathlib.Path.home()}/Emulation/tools/savesync/mount"
+    while is_connected():
+        time.sleep(2)
+    run_cmd(["fusermount", "-u", mount])
+
+
+def run(args):
     global conf
-    parser = argparse.ArgumentParser(prog="savesync", description="Syncs EmuDeck saves with your cloud storage "
-                                                                  "provider.")
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--setup", type=str, choices=["gdrive", "dropbox", "onedrive", "box"],
-                       help="Setup and login SaveSync for the specified provider")
-    group.add_argument("--sync", type=str, help="Run sync service")
-    args = vars(parser.parse_args())
     run_cmd(["mkdir", "-p", F"{pathlib.Path.home()}/Emulation/tools/savesync"])
     if not os.path.exists(F"{pathlib.Path.home()}/Emulation/tools/savesync/config.yml"):
         with open(F"{pathlib.Path.home()}/Emulation/tools/savesync/config.yml", "w+") as f:
@@ -76,7 +99,7 @@ def main():
             p = pexpect.spawn(rclone, ["config"])
             e = p.expect(["Current remotes:", "No remotes found, make a new one?"])
             if e == 0 and pexpect.spawn(rclone, ["listremotes"]).expect(["saves:", pexpect.EOF]) == 0:
-                parser.error("You are already setup. remove from rclone config and try again")
+                logger.error("You are already setup. remove from rclone config and try again")
             else:
                 p.sendline("n")
                 p.expect("name>")
@@ -98,7 +121,24 @@ def main():
             sync(args["sync"])
 
 
+def main():
+    parser = argparse.ArgumentParser(prog="savesync", description="Syncs EmuDeck saves with your cloud storage "
+                                                                  "provider.")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--setup", type=str, choices=["gdrive", "dropbox", "onedrive", "box"],
+                       help="Setup and login SaveSync for the specified provider")
+    group.add_argument("--sync", type=str, help="Run sync service")
+    args = vars(parser.parse_args())
+    sys.path.insert(0, bin_dir().__str__())
+    if is_connected():
+        run(args)
+    else:
+        logger.error("No internet connection")
+
+
 def sync(path_in: str):
+    network_check = threading.Thread(target=thread__network_check)
+    network_check.start()
     mount = F"{pathlib.Path.home()}/Emulation/tools/savesync/mount"
     run_cmd(["mkdir", "-p", mount])
     run_cmd([rclone, "mkdir", F"{conf.get('remote', 'saves')}:/Emulation/saves/"])
