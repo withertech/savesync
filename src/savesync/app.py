@@ -14,6 +14,7 @@ import time
 
 import pexpect
 import yaml
+import zenity
 from schema import Schema, Optional, SchemaError
 
 logger = logging.getLogger()
@@ -63,6 +64,7 @@ def run_cmd(command):
 
 rclone: str = bin_dir().joinpath("rclone").__str__()
 unison: str = bin_dir().joinpath("unison").__str__()
+should_check: bool = True
 
 
 def is_connected():
@@ -78,9 +80,10 @@ def is_connected():
 
 def thread__network_check():
     mount = F"{pathlib.Path.home()}/Emulation/tools/savesync/mount"
-    while is_connected():
+    while is_connected() and should_check:
         time.sleep(2)
-    run_cmd(["fusermount", "-u", mount])
+    if should_check:
+        run_cmd(["fusermount", "-u", mount])
 
 
 def run(args):
@@ -113,6 +116,8 @@ def run(args):
                         setup_onedrive(p)
                     case "box":
                         setup_box(p)
+                    case "nextcloud":
+                        setup_nextcloud(p)
                 p.expect("Yes this is OK")
                 p.sendline("y")
                 p.expect("Edit existing remote")
@@ -125,7 +130,7 @@ def main():
     parser = argparse.ArgumentParser(prog="savesync", description="Syncs EmuDeck saves with your cloud storage "
                                                                   "provider.")
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--setup", type=str, choices=["gdrive", "dropbox", "onedrive", "box"],
+    group.add_argument("--setup", type=str, choices=["gdrive", "dropbox", "onedrive", "box", "nextcloud"],
                        help="Setup and login SaveSync for the specified provider")
     group.add_argument("--sync", type=str, help="Run sync service")
     args = vars(parser.parse_args())
@@ -137,6 +142,7 @@ def main():
 
 
 def sync(path_in: str):
+    global should_check
     network_check = threading.Thread(target=thread__network_check)
     network_check.start()
     mount = F"{pathlib.Path.home()}/Emulation/tools/savesync/mount"
@@ -148,6 +154,8 @@ def sync(path_in: str):
              "-prefer", "newer", "-links", "true", "-follow", "Name *"] +
             shlex.split(os.environ.get("UNISON_ARGS", subprocess.list2cmdline(conf.get("unison-args", "")))))
     run_cmd(["fusermount", "-u", mount])
+    should_check = False
+    network_check.join()
 
 
 def setup_gdrive(p: pexpect.spawn):
@@ -220,3 +228,27 @@ def setup_box(p: pexpect.spawn):
     p.sendline("n")
     p.expect("Use auto config?")
     p.sendline("y")
+
+
+def setup_nextcloud(p: pexpect.spawn):
+    p.expect("Storage>")
+    p.sendline("webdav")
+    p.expect("url>")
+    p.sendline(zenity.show(zenity.entry, text="Url to NextCloud server")[1])
+    p.expect("vendor>")
+    p.sendline("nextcloud")
+    login = zenity.show(zenity.password, "username")[1]
+    username = login.split("|")[0].replace("\\n", "")
+    password = login.split("|")[1].replace("\\n", "")
+    p.expect("user>")
+    p.sendline(username)
+    p.expect("Option pass")
+    p.sendline("y")
+    p.expect("Enter the password:")
+    p.sendline(password)
+    p.expect("Confirm the password:")
+    p.sendline(password)
+    p.expect("bearer_token>")
+    p.sendline("")
+    p.expect("Edit advanced config?")
+    p.sendline("n")

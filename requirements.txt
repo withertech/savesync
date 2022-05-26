@@ -28,3 +28,4 @@ urllib3==1.26.9
 wheel==0.37.1
 PyYAML==6.0
 schema==0.7.5
+Zenity==2.0.0
