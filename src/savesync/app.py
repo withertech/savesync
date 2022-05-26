@@ -104,7 +104,7 @@ def sync(path_in: str):
     run_cmd([rclone, "mkdir", F"{conf.get('remote', 'saves')}:/Emulation/saves/"])
     run_cmd([rclone, "mount", F"{conf.get('remote', 'saves')}:/Emulation/saves/", mount, "--daemon"] +
             shlex.split(os.environ.get("RCLONE_ARGS", subprocess.list2cmdline(conf.get("rclone-args", "")))))
-    run_cmd([unison, mount, path_in, "-repeat", str(conf.get("sync-cooldown", 60)), "-batch", "-copyonconflict",
+    run_cmd([unison, mount, path_in, "-repeat", str(conf.get("sync-cooldown", "watch")), "-batch", "-copyonconflict",
              "-prefer", "newer", "-links", "true", "-follow", "Name *"] +
             shlex.split(os.environ.get("UNISON_ARGS", subprocess.list2cmdline(conf.get("unison-args", "")))))
     run_cmd(["fusermount", "-u", mount])
