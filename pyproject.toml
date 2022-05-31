@@ -15,7 +15,8 @@ sources = ["src/savesync"]
 requires = [
     "pexpect==4.8.0",
     "PyYAML==6.0",
-    "schema==0.7.5"
+    "schema==0.7.5",
+    "Zenity==2.0.0"
 ]
 
 [tool.briefcase.app.savesync.linux]
